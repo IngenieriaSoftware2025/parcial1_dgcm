@@ -81,7 +81,7 @@ class PersonasController extends AppController
                 'tipo' => 'success',
                 'personas' => $personas ?: [],
                 'mensaje' => $personas
-                    ? 'personas obtenidos correctamente'
+                    ? 'Personas obtenidas correctamente'
                     : 'No hay personas registradao'
             ]);
         } catch (\Exception $e) {

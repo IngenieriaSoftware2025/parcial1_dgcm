@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda</title>
-    <link rel="shortcut icon" href="<?= asset('images/cit.png') ?>" type="image/x-icon">
+    <link rel="shortcut icon" href="<?= asset('images/logo.png') ?>" type="image/x-icon">
     <link rel="stylesheet" href="<?= asset('build/styles.css') ?>">
     <script src="<?= asset('build/js/app.js') ?>"></script>
 </head>
@@ -14,7 +14,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/parcial1_dgcm">
-                <img src="<?= asset('images/cit.png') ?>" width="35" alt="cit"> Aplicaciones
+                <img src="<?= asset('images/logo.png') ?>" width="35" alt="cit"> Aplicaciones
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggler">
                 <span class="navbar-toggler-icon"></span>
