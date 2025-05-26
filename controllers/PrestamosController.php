@@ -18,18 +18,21 @@ class PrestamosController extends AppController
             self::validarMetodo('POST');
             self::limpiarSalida();
 
-            // Debug
+            // Depurar
             error_log("POST recibido (prestamo): " . json_encode($_POST));
 
             $datos = [
                 'id_libro' => $_POST['id_libro'] ?? '',
-                'id_persona' => $_POST['id_persona'] ?? ''
+                'id_persona' => $_POST['id_persona'] ?? '',
+                'fecha_detalle' => date('Y-m-d H:i:s'),
+                'prestamo' => 0,
+                'situacion' => 1
             ];
 
             $prestamo = new Prestamos($datos);
             $resultado = $prestamo->guardarPrestamo();
 
-            // Debug
+            // Depurar
             error_log("Resultado guardarPrestamo: " . json_encode($resultado));
 
             self::responderJson([
@@ -78,6 +81,8 @@ class PrestamosController extends AppController
             // Convierte cada objeto a un array plano
             $data = Prestamos::toArrayList($lista);
 
+            error_log("Préstamos obtenidos: " . count($data));
+
             self::responderJson([
                 'tipo'      => 'success',
                 'prestamos' => $data,
@@ -86,6 +91,7 @@ class PrestamosController extends AppController
                     : 'No hay prestamos registrados'
             ]);
         } catch (\Exception $e) {
+            error_log("Error en obtenerPrestamos: " . $e->getMessage());
             self::responderJson([
                 'tipo'    => 'error',
                 'mensaje' => 'Error: ' . $e->getMessage()
@@ -101,19 +107,33 @@ class PrestamosController extends AppController
             self::limpiarSalida();
 
             $id = $_POST['id_prestamo'] ?? null;
-            $prestamo = Prestamos::buscarPorId($id);
-            $prestamo->sincronizar($_POST);
 
-            $resultado = $prestamo->guardarPrestamo();
+            $prestamo = new Prestamos($_POST);
+            $prestamo->id_prestamo = $id;
+
+            $errores = $prestamo->validar();
+            if (!empty($errores)) {
+                self::responderJson([
+                    'tipo' => 'error',
+                    'mensaje' => implode(', ', $errores)
+                ], 400);
+                return;
+            }
+
+            $resultado = $prestamo->actualizar();
+
+            if (!$resultado['resultado']) {
+                throw new \Exception('Error al actualizar');
+            }
 
             self::responderJson([
-                'tipo'     => $resultado['exito'] ? 'success' : 'error',
-                'mensaje'  => $resultado['mensaje'],
-                'prestamos' => $resultado['exito'] ? $prestamo : null
-            ], $resultado['exito'] ? 200 : 400);
+                'tipo' => 'success',
+                'mensaje' => 'Préstamo actualizado correctamente'
+            ]);
         } catch (\Exception $e) {
+            error_log("Error en modificarPrestamo: " . $e->getMessage());
             self::responderJson([
-                'tipo'    => 'error',
+                'tipo' => 'error',
                 'mensaje' => 'Error: ' . $e->getMessage()
             ], 500);
         }
@@ -134,6 +154,64 @@ class PrestamosController extends AppController
                 'tipo'    => $resultado['exito'] ? 'success' : 'error',
                 'mensaje' => $resultado['mensaje']
             ], $resultado['exito'] ? 200 : 400);
+        } catch (\Exception $e) {
+            self::responderJson([
+                'tipo'    => 'error',
+                'mensaje' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public static function prestarPrestamo()
+    {
+        try {
+            self::validarMetodo('POST');
+            self::limpiarSalida();
+
+            $id = $_POST['id_prestamo'] ?? null;
+            $prestamo = Prestamos::buscarPorId($id);
+
+            if (!$prestamo || $prestamo->prestamo == 1) {
+                throw new \Exception('Préstamo inválido');
+            }
+
+            $prestamo->prestamo = 1;
+            $res = $prestamo->guardarPrestamo();
+
+            self::responderJson([
+                'tipo'    => $res['exito'] ? 'success' : 'error',
+                'mensaje' => $res['mensaje'],
+                'prestamo' => $res['exito'] ? $prestamo : null
+            ], $res['exito'] ? 200 : 400);
+        } catch (\Exception $e) {
+            self::responderJson([
+                'tipo'    => 'error',
+                'mensaje' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public static function devolverPrestamo()
+    {
+        try {
+            self::validarMetodo('POST');
+            self::limpiarSalida();
+
+            $id = $_POST['id_prestamo'] ?? null;
+            $prestamo = Prestamos::buscarPorId($id);
+            
+            if (!$prestamo || $prestamo->prestamo == 0) {
+                throw new \Exception('Préstamo inválido o ya devuelto');
+            }
+
+            $prestamo->prestamo = 0;
+            $res = $prestamo->guardarPrestamo();
+
+            self::responderJson([
+                'tipo'     => $res['exito'] ? 'success' : 'error',
+                'mensaje'  => $res['mensaje'],
+                'prestamo' => $res['exito'] ? $prestamo : null
+            ], $res['exito'] ? 200 : 400);
         } catch (\Exception $e) {
             self::responderJson([
                 'tipo'    => 'error',

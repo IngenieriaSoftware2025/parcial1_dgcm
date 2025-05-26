@@ -21,8 +21,8 @@ class Prestamos extends ActiveRecord
     public $id_libro;
     public $id_persona;
     public $fecha_detalle;
-    public $prestamo;
-    public $situacion;
+    public $prestamo = 0;
+    public $situacion = 1;
 
     // Para relaciones
     public $libro_titulo;
@@ -33,22 +33,17 @@ class Prestamos extends ActiveRecord
 
     public function __construct($args = [])
     {
-
         $this->id_prestamo = $args['id_prestamo'] ?? null;
         $this->id_libro = $args['id_libro'] ?? '';
         $this->id_persona = $args['id_persona'] ?? '';
-        if (isset($args['fecha_detalle'])) {
-            $f = str_replace('T', ' ', $args['fecha_detalle']);
-            if (strlen($f) === 16) {
-                $f .= ':00';
-            }
-            $this->fecha_detalle = $f;
-        } else {
-            $this->fecha_detalle = date('Y-m-d H:i:s');
-        }
-        // Inicializar campos de relación (si vienen en $args)
-        $this->libro_titulo  = $args['libro_titulo']  ?? '';
-        $this->persona_nombres  = $args['persona_nombres']  ?? '';
+        $this->situacion = $args['situacion'] ?? 1;
+
+        $this->fecha_detalle = $this->validarFecha($args['fecha_detalle'] ?? null);
+
+        $this->prestamo = isset($args['prestamo']) ? (int)$args['prestamo'] : 0;
+
+        $this->libro_titulo = $args['libro_titulo'] ?? '';
+        $this->persona_nombres = $args['persona_nombres'] ?? '';
     }
 
     public function validar()
@@ -60,7 +55,7 @@ class Prestamos extends ActiveRecord
         if (empty($this->id_persona)) {
             self::$errores[] = 'Debe seleccionar un lector';
         }
-        
+
         return self::$errores;
     }
 
@@ -73,16 +68,37 @@ class Prestamos extends ActiveRecord
 
     public function guardarPrestamo()
     {
-        return $this->guardarSeguro(
-            [
-                'id_prestamo' => $this->id_prestamo,
-                'id_libro' => $this->id_libro,
-                'id_persona' => $this->id_persona
-            ],
-            'Ya existe ese prestamo para este lector y libro'
-        );
-    }
+        try {
+            $errores = $this->validar();
+            if (!empty($errores)) {
+                return [
+                    'exito' => false,
+                    'mensaje' => implode(', ', $errores)
+                ];
+            }
+            $resultado = $this->id_prestamo ? $this->actualizar() : $this->crear();
 
+            if (!$resultado) {
+                throw new \Exception('Error en la operación de base de datos');
+            }
+
+            if (!$this->id_prestamo && isset($resultado['id'])) {
+                $this->id_prestamo = $resultado['id'];
+            }
+
+            return [
+                'exito' => true,
+                'mensaje' => $this->id_prestamo ? 'Préstamo actualizado correctamente' : 'Préstamo guardado correctamente',
+                'prestamo' => $this->attributosConRelaciones()
+            ];
+        } catch (\Exception $e) {
+            error_log("Error en guardarPrestamo: " . $e->getMessage());
+            return [
+                'exito' => false,
+                'mensaje' => 'Error al guardar el préstamo: ' . $e->getMessage()
+            ];
+        }
+    }
 
     public function eliminarPrestamo()
     {
@@ -121,19 +137,44 @@ class Prestamos extends ActiveRecord
     {
         $sql = "
         SELECT
-            p.*,
+            p.id_prestamo,
+            p.id_libro,
+            p.id_persona,
+            p.fecha_detalle,
+            p.prestamo,
+            p.situacion,
             li.titulo AS libro_titulo,
-            per.nombres AS persona_nombres,
+            per.nombres AS persona_nombres
         FROM prestamos p
-        JOIN libros li ON p.id_libro = li.id_libro
-        JOIN personas per ON p.id_persona = per.id_persona 
+        INNER JOIN libros li ON p.id_libro = li.id_libro
+        INNER JOIN personas per ON p.id_persona = per.id_persona 
         WHERE p.situacion = 1
+        ORDER BY p.fecha_detalle DESC
     ";
-        $filas = static::consultarSQL($sql);
-        $lista = [];
-        foreach ($filas as $fila) {
-            $lista[] = new self((array)$fila);
+        try {
+            $filas = static::consultarSQL($sql);
+            $lista = [];
+            foreach ($filas as $fila) {
+                $lista[] = new self((array)$fila);
+            }
+            return $lista;
+        } catch (\Exception $e) {
+            error_log("Error en obtenerConRelaciones: " . $e->getMessage());
+            return [];
         }
-        return $lista;
+    }
+
+    public function attributosConRelaciones()
+    {
+        return [
+            'id_prestamo' => $this->id_prestamo,
+            'id_libro' => $this->id_libro,
+            'id_persona' => $this->id_persona,
+            'fecha_detalle' => $this->fecha_detalle,
+            'prestamo' => $this->prestamo,
+            'situacion' => $this->situacion,
+            'libro_titulo' => $this->libro_titulo,
+            'persona_nombres' => $this->persona_nombres
+        ];
     }
 }

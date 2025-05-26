@@ -97,6 +97,46 @@ class ActiveRecord
         return array_shift($resultado);
     }
 
+    protected function validarFecha($fecha)
+    {
+        if (empty($fecha)) {
+            return date('Y-m-d H:i:s');
+        }
+
+        try {
+            // Si viene con T (formato HTML datetime-local)
+            if (strpos($fecha, 'T') !== false) {
+                $fecha = str_replace('T', ' ', $fecha);
+            }
+
+            // Si no tiene segundos, agregarlos
+            if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $fecha)) {
+                $fecha .= ':00';
+            }
+
+            // Validar que el formato sea correcto para Informix
+            if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $fecha)) {
+                error_log("Formato de fecha inválido: $fecha");
+                return date('Y-m-d H:i:s');
+            }
+
+            // Validar que sea una fecha válida
+            $partes = explode(' ', $fecha);
+            $fechaParte = explode('-', $partes[0]);
+            $horaParte = explode(':', $partes[1]);
+
+            if (!checkdate($fechaParte[1], $fechaParte[2], $fechaParte[0])) {
+                error_log("Fecha no válida: $fecha");
+                return date('Y-m-d H:i:s');
+            }
+
+            return $fecha;
+        } catch (\Exception $e) {
+            error_log("Error al validar fecha '$fecha': " . $e->getMessage());
+            return date('Y-m-d H:i:s');
+        }
+    }
+
     // Busqueda Where con Columna 
     public static function where($columna, $valor, $condicion = '=')
     {
@@ -302,49 +342,34 @@ class ActiveRecord
     protected function validarDuplicado($campos, $mensajeError = null)
     {
         try {
-            // Construir condiciones WHERE
+
             $condiciones = [];
             $valores = [];
 
-            foreach ($campos as $campo => $valor) {
-                if ($campo === 'nombre') {
-                    $condiciones[] = "LOWER($campo) = LOWER(?)";
-                } else {
-                    $condiciones[] = "$campo = ?";
-                }
-                $valores[] = $valor;
-            }
+            // ... construcción de $condiciones y $valores ...
 
-            // Agregar condición de situación activa
-            $condiciones[] = "situacion = 1";
-
-            // Si es actualización, excluir el registro actual
-            $id = static::$idTabla;
-            if ($this->$id) {
-                $condiciones[] = "$id <> ?";
-                $valores[] = $this->$id;
-            }
-
-            // Construir y ejecutar consulta
-            $sql = "SELECT COUNT(*) as cnt FROM " . static::$tabla .
+            $sql  = "SELECT COUNT(*) AS cnt FROM " . static::$tabla .
                 " WHERE " . implode(" AND ", $condiciones);
-
             $stmt = self::$db->prepare($sql);
             $stmt->execute($valores);
+
             $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Si no hay fila o no viene 'cnt', asumimos 0
+            $cnt = isset($resultado['cnt']) ? (int)$resultado['cnt'] : 0;
 
             return [
-                'duplicado' => ($resultado['cnt'] > 0),
-                'mensaje' => $mensajeError ?? 'Registro duplicado'
+                'duplicado' => ($cnt > 0),
+                'mensaje'   => $mensajeError ?? 'Registro duplicado'
             ];
         } catch (\Exception $e) {
             error_log("Error en validarDuplicado: " . $e->getMessage());
             return [
                 'duplicado' => false,
-                'mensaje' => 'Error al validar duplicados'
+                'mensaje'   => 'Error al validar duplicados'
             ];
         }
     }
+
 
     protected function guardarSeguro($validarDuplicados = [], $mensajeError = null)
     {

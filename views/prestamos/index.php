@@ -84,7 +84,7 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="tab" href="#devueltos">
-                            <i class="bi bi-check-circle-fill me-1"></i>Devueltos
+                            <i class="bi bi-check-circle-fill me-1"></i>Prestados
                         </a>
                     </li>
                 </ul>
@@ -110,7 +110,7 @@
                             </table>
                         </div>
                     </div>
-                    <div class="tab-pane fade" id="activos">
+                    <div class="tab-pane fade" id="devueltos">
                         <div class="table-responsive">
                             <table class="table table-striped table-hover table-bordered w-100 table-sm"
                                 id="tablaprestamosDevueltos">
@@ -124,8 +124,5 @@
     </div>
 </div>
 </div>
-
-<link rel="stylesheet" href="https://cdn.datatables.net/rowgroup/1.3.1/css/rowGroup.bootstrap5.min.css">
-<script src="https://cdn.datatables.net/rowgroup/1.3.1/js/dataTables.rowGroup.min.js"></script>
 
 <script src="<?= asset('build/js/prestamos/index.js') ?>"></script>

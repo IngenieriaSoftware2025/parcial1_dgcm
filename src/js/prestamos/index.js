@@ -3,7 +3,7 @@ console.log('Hola desde prestamos/index.js');
 import Swal from "sweetalert2";
 import DataTable from "datatables.net-bs5";
 import { lenguaje } from "../lenguaje.js";
-import { Dropdown } from 'bootstrap';
+import { Dropdown } from "bootstrap";
 
 const Formprestamos = document.getElementById("Formprestamos");
 const btnGuardar = document.getElementById("btnGuardar");
@@ -32,26 +32,17 @@ const apiFetch = async (url, { method = 'GET', body = null } = {}) => {
     return data;
 };
 
-// Reglas de validación
 const camposObligatorios = {
-    id_libro: 'Debe seleccionar una libro',
-    id_persona: 'Debe seleccionar unaa persona'
+    id_libro: 'Debe seleccionar un libro',
+    id_persona: 'Debe seleccionar una persona'
 };
-
 
 const validarDatos = formData => {
     const errores = [];
     const datos = Object.fromEntries(formData);
-    // Obligatorios
     for (const [campo, msg] of Object.entries(camposObligatorios)) {
         if (!datos[campo] || datos[campo].toString().trim() === '') {
             errores.push(msg);
-        }
-    }
-    // Específicas
-    for (const [campo, regla] of Object.entries(reglasEspecificas)) {
-        if (datos[campo] && !regla.evaluar(datos[campo])) {
-            errores.push(regla.msg);
         }
     }
     return errores;
@@ -65,190 +56,170 @@ const limpiarFormulario = () => {
     Formprestamos.reset();
 };
 
-// DataTables
-const tablaactivos = new DataTable('#tablaprestamos', {
+const tablaDisponibles = new DataTable('#tablaprestamos', {
     language: lenguaje,
     dom: 'Bfrtip',
-
-    rowGroup: {
-        dataSrc: 'categoria_nombre'
-    },
-
-    order: [
-        [3, 'asc'],
-        [4, 'desc']
-    ],
-
-    columnDefs: [
-        {
-            targets: 4,
-            render: (data, type) => {
-                let clase;
-                switch (data) {
-                    case 'Alta': clase = 'bg-danger text-white'; break;
-                    case 'Media': clase = 'bg-warning text-dark'; break;
-                    case 'Baja': clase = 'bg-success text-white'; break;
-                    default: clase = 'bg-secondary text-white';
-                }
-                return `<span class="badge ${clase}">${data}</span>`;
-            }
-        }
-    ],
-
     columns: [
         {
             title: '#',
             data: 'id_prestamo',
             render: (_, __, ___, meta) => meta.row + 1
         },
-        { title: 'Producto', data: 'nombre' },
-        { title: 'Cantidad', data: 'cantidad' },
-        { title: 'Categoría', data: 'categoria_nombre' },
-        { title: 'Prioridad', data: 'prioridad_nombre' },
-        { title: 'Cliente', data: 'cliente_nombre' },
+        { title: 'Libro', data: 'libro_titulo' },
+        { title: 'Lector', data: 'persona_nombres' },
+        { title: 'Fecha', data: 'fecha_detalle' },
+        {
+            title: 'Estado',
+            data: 'prestamo',
+            render: (data) => {
+                return data == 0
+                    ? '<span class="badge bg-success">Disponible</span>'
+                    : '<span class="badge bg-warning">Prestado</span>';
+            }
+        },
         {
             title: 'Acciones',
             data: null,
             render: row => `
-        <div class="d-flex justify-content-center">
-          <button class="btn btn-success btn-comprar me-2"
-                  data-id="${row.id_prestamo}"
-                  title="Marcar comprado">
-            <i class="bi bi-check-circle-fill"></i>
-          </button>
-          <button class="btn btn-warning btn-editar me-2"
-                  data-id="${row.id_prestamo}"
-                  title="Editar">
-            <i class="bi bi-pencil-fill"></i>
-          </button>
-          <button class="btn btn-danger btn-eliminar"
-                  data-id="${row.id_prestamo}"
-                  title="Eliminar">
-            <i class="bi bi-trash-fill"></i>
-          </button>
-        </div>`
+                <div class="d-flex justify-content-center">
+                    <button class="btn btn-success btn-prestar me-2"
+                            data-id="${row.id_prestamo}"
+                            title="Marcar como prestado">
+                        <i class="bi bi-check-circle-fill"></i> Prestar
+                    </button>
+                    <button class="btn btn-warning btn-editar me-2"
+                            data-id="${row.id_prestamo}"
+                            title="Editar">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    <button class="btn btn-danger btn-eliminar"
+                            data-id="${row.id_prestamo}"
+                            title="Eliminar">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </div>`
         }
     ]
 });
 
-const tablaComprados = new DataTable('#tablaprestamosComprados', {
+const tablaPrestados = new DataTable('#tablaprestamosDevueltos', {
     language: lenguaje,
     dom: 'Bfrtip',
-
-    rowGroup: {
-        dataSrc: 'categoria_nombre'
-    },
-
-    order: [
-        [3, 'asc'],
-        [4, 'desc']
-    ],
-
-    columnDefs: [
-        {
-            targets: 4, 
-            render: (data, type) => {
-                let clase;
-                switch (data) {
-                    case 'Alta': clase = 'bg-danger text-white'; break;
-                    case 'Media': clase = 'bg-warning text-dark'; break;
-                    case 'Baja': clase = 'bg-success text-white'; break;
-                    default: clase = 'bg-secondary text-white';
-                }
-                return `<span class="badge ${clase}">${data}</span>`;
-            }
-        }
-    ],
-
     columns: [
         {
             title: '#',
             data: 'id_prestamo',
             render: (_, __, ___, meta) => meta.row + 1
         },
-        { title: 'Producto', data: 'nombre' },
-        { title: 'Cantidad', data: 'cantidad' },
-        { title: 'Categoría', data: 'categoria_nombre' },
-        { title: 'Prioridad', data: 'prioridad_nombre' },
-        { title: 'Cliente', data: 'cliente_nombre' },
+        { title: 'Libro', data: 'libro_titulo' },
+        { title: 'Lector', data: 'persona_nombres' },
+        { title: 'Fecha', data: 'fecha_detalle' },
+        {
+            title: 'Estado',
+            data: 'prestamo',
+            render: (data) => {
+                return '<span class="badge bg-warning">Prestado</span>';
+            }
+        },
         {
             title: 'Acciones',
             data: null,
             render: row => `
-        <div class="d-flex justify-content-center">
-          <button class="btn btn-secondary btn-pendiente me-2"
-                  data-id="${row.id_prestamo}"
-                  title="Marcar como pendiente">
-            <i class="bi bi-arrow-counterclockwise"></i>
-          </button>
-          <button class="btn btn-danger btn-eliminar"
-                  data-id="${row.id_prestamo}"
-                  title="Eliminar">
-            <i class="bi bi-trash-fill"></i>
-          </button>
-        </div>`
+                <div class="d-flex justify-content-center">
+                    <button class="btn btn-secondary btn-devolver me-2"
+                            data-id="${row.id_prestamo}"
+                            title="Marcar como devuelto">
+                        <i class="bi bi-arrow-counterclockwise"></i> Devolver
+                    </button>
+                    <button class="btn btn-warning btn-editar me-2"
+                            data-id="${row.id_prestamo}"
+                            title="Editar">
+                        <i class="bi bi-pencil-fill"></i>
+                    </button>
+                    <button class="btn btn-danger btn-eliminar"
+                            data-id="${row.id_prestamo}"
+                            title="Eliminar">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </div>`
         }
     ]
 });
-
-
-// Carga de selects
-const cargarCategorias = async () => {
-    const { categorias } = await apiFetch('/parcial1_dgcm/categorias/obtenerCategorias');
-    selectLibro.innerHTML = `
-        <option value="">Seleccione una categoría</option>
-        ${categorias.map(c => `<option value="${c.id_libro}">${c.nombre}</option>`).join('')}
-    `;
-};
 
 const cargarLibros = async () => {
-    const { prioridades } = await apiFetch('/parcial1_dgcm/prioridades/obtenerLibros');
-    selectPersona.innerHTML = `
-        <option value="">Seleccione una prioridad</option>
-        ${prioridades.map(p => `<option value="${p.id_libro}">${p.nombre}</option>`).join('')}
-    `;
+    try {
+        const { libros } = await apiFetch('/parcial1_dgcm/libros/obtenerLibros');
+        if (selectLibro) {
+            selectLibro.innerHTML = `
+                <option value="">Seleccione un libro</option>
+                ${libros.map(l => `<option value="${l.id_libro}">${l.titulo}</option>`).join('')}
+            `;
+        }
+    } catch (err) {
+        console.error('Error cargando libros:', err);
+    }
 };
 
 const cargarPersonas = async () => {
-    const { clientes } = await apiFetch('/parcial1_dgcm/clientes/obtenerPersonas');
-    document.getElementById('id_persona').innerHTML = `
-    <option value="">Seleccione un cliente</option>
-    ${clientes.map(c => `<option value="${c.id_persona}">${c.nombres} ${c.apellidos}</option>`).join('')}
-  `;
+    try {
+        const { personas } = await apiFetch('/parcial1_dgcm/personas/obtenerPersonas');
+        if (selectPersona) {
+            selectPersona.innerHTML = `
+                <option value="">Seleccione una persona</option>
+                ${personas.map(p => `<option value="${p.id_persona}">${p.nombres} ${p.apellidos}</option>`).join('')}
+            `;
+        }
+    } catch (err) {
+        console.error('Error cargando personas:', err);
+    }
 };
 
-let prestamosactivos = [], prestamosComprados = [];
+const cargarPrestamos = async () => {
+    try {
+        const { prestamos } = await apiFetch('/parcial1_dgcm/prestamos/obtenerPrestamos');
 
-const cargarprestamos = async () => {
-    const { prestamos } = await apiFetch('/parcial1_dgcm/prestamos/obtenerPrestamos');
-    prestamosactivos = prestamos.filter(p => p.comprado == 0);
-    prestamosComprados = prestamos.filter(p => p.comprado == 1);
+        // Filtrar disponibles
+        const disponibles = prestamos.filter(p => p.prestamo == 0);
+        const prestados = prestamos.filter(p => p.prestamo == 1);
 
-    tablaactivos.clear().rows.add(prestamosactivos).draw();
-    tablaComprados.clear().rows.add(prestamosComprados).draw();
+        // Cargar datos en las tablas correspondientes
+        tablaDisponibles.clear().rows.add(disponibles).draw();
+        tablaPrestados.clear().rows.add(prestados).draw();
 
-    resumenprestamos.textContent = `
-        activos: ${prestamosactivos.length} —
-        Comprados: ${prestamosComprados.length}
-    `;
+        if (resumenprestamos) {
+            resumenprestamos.textContent = `Total: ${prestamos.length} | Disponibles: ${disponibles.length} | Prestados: ${prestados.length}`;
+        }
+
+    } catch (err) {
+        console.error(err);
+        await mostrarAlerta('error', 'Error', err.message);
+    }
 };
 
-// Llenar formulario para editar
 const llenarFormulario = async event => {
     const id = event.currentTarget.dataset.id;
-    const { producto } = await apiFetch(
-        `/parcial1_dgcm/prestamos/buscarPrestamo?id_prestamo=${id}`
-    );
-    ['id_prestamo', 'nombre', 'cantidad', 'id_libro', 'id_libro', 'id_persona']
-        .forEach(f => document.getElementById(f).value = producto[f] ?? '');
+    try {
+        const { prestamo } = await apiFetch(`/parcial1_dgcm/prestamos/buscarPrestamo?id_prestamo=${id}`);
 
-    btnGuardar.classList.add('d-none');
-    btnModificar.classList.remove('d-none');
+        document.getElementById('id_prestamo').value = prestamo.id_prestamo || '';
+        document.getElementById('id_libro').value = prestamo.id_libro || '';
+        document.getElementById('id_persona').value = prestamo.id_persona || '';
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+        let fechaFormato = '';
+        if (prestamo.fecha_detalle) {
+            fechaFormato = prestamo.fecha_detalle.substring(0, 16).replace(' ', 'T');
+        }
+        document.getElementById('fecha_detalle').value = fechaFormato;
+
+        btnGuardar.classList.add('d-none');
+        btnModificar.classList.remove('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+        await mostrarAlerta('error', 'Error', 'Error al cargar los datos del préstamo');
+    }
 };
 
-// Guardar producto
+
 const guardarPrestamo = async e => {
     e.preventDefault();
     estadoBoton(btnGuardar, true);
@@ -256,20 +227,6 @@ const guardarPrestamo = async e => {
     try {
         const formData = new FormData(Formprestamos);
         const errores = validarDatos(formData);
-
-        const datos = Object.fromEntries(formData);
-        const nombreLower = datos.nombre.trim().toLowerCase();
-        const catId = datos.id_libro;
-        const cliId = datos.id_persona;
-
-        if (prestamosactivos.some(p =>
-            p.nombre.toLowerCase() === nombreLower &&
-            String(p.id_libro) === catId &&
-            String(p.id_persona) === cliId
-        )) {
-            await mostrarAlerta('error', 'Duplicado', 'Ya agregaste este producto en esa categoría para este cliente.');
-            return;
-        }
 
         if (errores.length) {
             await mostrarAlerta('error', 'Error de validación', errores.join('\n'));
@@ -283,7 +240,7 @@ const guardarPrestamo = async e => {
 
         await mostrarAlerta('success', 'Éxito', mensaje);
         limpiarFormulario();
-        await cargarprestamos();
+        await cargarPrestamos();
     } catch (err) {
         console.error(err);
         await mostrarAlerta('error', 'Error', err.message);
@@ -292,8 +249,6 @@ const guardarPrestamo = async e => {
     }
 };
 
-
-// Modificar producto
 const modificarPrestamo = async e => {
     e.preventDefault();
     estadoBoton(btnModificar, true);
@@ -316,7 +271,7 @@ const modificarPrestamo = async e => {
         limpiarFormulario();
         btnGuardar.classList.remove('d-none');
         btnModificar.classList.add('d-none');
-        await cargarprestamos();
+        await cargarPrestamos();
     } catch (err) {
         console.error(err);
         await mostrarAlerta('error', 'Error', err.message);
@@ -325,22 +280,14 @@ const modificarPrestamo = async e => {
     }
 };
 
-// Eliminar o marcar comprado
 const eliminarPrestamo = async event => {
     const btn = event.currentTarget;
     const id = btn.dataset.id;
-    const fila = btn.closest('table').id === 'tablaprestamos'
-        ? tablaactivos.row(btn.closest('tr')).data()
-        : tablaComprados.row(btn.closest('tr')).data();
-
-    const texto = fila.comprado == 0
-        ? `marcar como comprado: "${fila.nombre}"?`
-        : `eliminar definitivamente: "${fila.nombre}"?`;
 
     const { isConfirmed } = await Swal.fire({
         icon: 'warning',
         title: '¿Estás seguro?',
-        html: `¿Deseas ${texto}`,
+        text: `¿Deseas eliminar este préstamo?`,
         showCancelButton: true,
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
@@ -350,26 +297,25 @@ const eliminarPrestamo = async event => {
     const formData = new FormData();
     formData.append('id_prestamo', id);
 
-    await apiFetch('/parcial1_dgcm/prestamos/eliminarPrestamo', {
-        method: 'POST',
-        body: formData
-    });
+    try {
+        await apiFetch('/parcial1_dgcm/prestamos/eliminarPrestamo', {
+            method: 'POST',
+            body: formData
+        });
 
-    await mostrarAlerta('success', 'Éxito',
-        fila.comprado == 0
-            ? 'Producto marcado como comprado'
-            : 'Producto eliminado correctamente'
-    );
-    await cargarprestamos();
+        await mostrarAlerta('success', 'Éxito', 'Préstamo eliminado correctamente');
+        await cargarPrestamos();
+    } catch (err) {
+        await mostrarAlerta('error', 'Error', err.message);
+    }
 };
 
-
-const comprarProducto = async e => {
+const prestarLibro = async e => {
     const id = e.currentTarget.dataset.id;
     const { isConfirmed } = await Swal.fire({
         icon: 'question',
-        title: 'Marcar como comprado',
-        text: '¿Confirmas que ya compraste este producto?',
+        title: 'Marcar como prestado',
+        text: '¿Confirmas que este libro fue prestado?',
         showCancelButton: true,
         confirmButtonText: 'Sí',
         cancelButtonText: 'No'
@@ -378,22 +324,26 @@ const comprarProducto = async e => {
 
     const fd = new FormData();
     fd.append('id_prestamo', id);
-    fd.append('comprado', 1);
 
-    await apiFetch('/parcial1_dgcm/prestamos/modificarPrestamo', {
-        method: 'POST',
-        body: fd
-    });
-    await mostrarAlerta('success', 'Éxito', 'Producto marcado como comprado');
-    await cargarprestamos();
+    try {
+        await apiFetch('/parcial1_dgcm/prestamos/prestarPrestamo', {
+            method: 'POST',
+            body: fd
+        });
+        await mostrarAlerta('success', 'Éxito', 'Libro marcado como prestado');
+        await cargarPrestamos();
+    } catch (err) {
+        await mostrarAlerta('error', 'Error', err.message);
+    }
 };
 
-const revertirApendiente = async e => {
+
+const devolverLibro = async e => {
     const id = e.currentTarget.dataset.id;
     const { isConfirmed } = await Swal.fire({
         icon: 'question',
-        title: 'Marcar como pendiente',
-        text: '¿Quieres devolver este producto a activos?',
+        title: 'Marcar como devuelto',
+        text: '¿Confirmas que este libro fue devuelto?',
         showCancelButton: true,
         confirmButtonText: 'Sí',
         cancelButtonText: 'No'
@@ -402,39 +352,55 @@ const revertirApendiente = async e => {
 
     const fd = new FormData();
     fd.append('id_prestamo', id);
-    fd.append('comprado', 0);
 
-    await apiFetch('/parcial1_dgcm/prestamos/modificarPrestamo', {
-        method: 'POST',
-        body: fd
-    });
-    await mostrarAlerta('success', 'Éxito', 'Producto marcado como pendiente');
-    await cargarprestamos();
+    try {
+        await apiFetch('/parcial1_dgcm/prestamos/devolverPrestamo', {
+            method: 'POST',
+            body: fd
+        });
+        await mostrarAlerta('success', 'Éxito', 'Libro marcado como devuelto');
+        await cargarPrestamos();
+    } catch (err) {
+        await mostrarAlerta('error', 'Error', err.message);
+    }
 };
 
 
-
-// Eventos
+// Eventos 
 document.addEventListener('DOMContentLoaded', async () => {
-    await Promise.all([
-        cargarCategorias(),
-        cargarLibros(),
-        cargarPersonas(),
-        cargarprestamos()
-    ]);
-    Formprestamos.addEventListener('submit', guardarPrestamo);
-    btnModificar.addEventListener('click', modificarPrestamo);
-    btnLimpiar.addEventListener('click', () => {
-        limpiarFormulario();
-        btnGuardar.classList.remove('d-none');
-        btnModificar.classList.add('d-none');
-    });
-    tablaactivos.on('click', '.btn-editar', llenarFormulario);
-    tablaactivos.on('click', '.btn-eliminar', eliminarPrestamo);
-    tablaComprados.on('click', '.btn-eliminar', eliminarPrestamo);
+    try {
+        await Promise.all([
+            cargarLibros(),
+            cargarPersonas(),
+            cargarPrestamos()
+        ]);
+    } catch (err) {
+        console.error('Error al cargar datos iniciales:', err);
+        await mostrarAlerta('error', 'Error', 'Error al cargar los datos iniciales');
+    }
 
-    tablaactivos.on('click', '.btn-comprar', comprarProducto);
-    tablaComprados.on('click', '.btn-pendiente', revertirApendiente);
+    if (Formprestamos) {
+        Formprestamos.addEventListener('submit', guardarPrestamo);
+    }
 
+    if (btnModificar) {
+        btnModificar.addEventListener('click', modificarPrestamo);
+    }
 
+    if (btnLimpiar) {
+        btnLimpiar.addEventListener('click', () => {
+            limpiarFormulario();
+            if (btnGuardar) btnGuardar.classList.remove('d-none');
+            if (btnModificar) btnModificar.classList.add('d-none');
+        });
+    }
+
+    tablaDisponibles.on('click', '.btn-editar', llenarFormulario);
+    tablaDisponibles.on('click', '.btn-eliminar', eliminarPrestamo);
+    tablaDisponibles.on('click', '.btn-prestar', prestarLibro);
+    tablaDisponibles.on('click', '.btn-devolver', devolverLibro);
+
+    tablaPrestados.on('click', '.btn-editar', llenarFormulario);
+    tablaPrestados.on('click', '.btn-eliminar', eliminarPrestamo);
+    tablaPrestados.on('click', '.btn-devolver', devolverLibro);
 });
